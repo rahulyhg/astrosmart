@@ -2,6 +2,21 @@ body {
     padding-top: 60px;
     padding-bottom: 40px;
 }
+.front-page {
+    background: url("../img/back.jpg");
+    background-size: cover;
+}
+
+.background-video {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: -9999;
+}
 
 .zf-green {
     color: #68b604;
