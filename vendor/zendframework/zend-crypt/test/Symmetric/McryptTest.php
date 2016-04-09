@@ -9,20 +9,33 @@
 
 namespace ZendTest\Crypt\Symmetric;
 
+use ArrayObject;
+use Interop\Container\ContainerInterface;
 use Zend\Crypt\Symmetric\Exception;
 use Zend\Crypt\Symmetric\Mcrypt;
+use Zend\Crypt\Symmetric\Padding\NoPadding;
 use Zend\Crypt\Symmetric\Padding\PKCS7;
-use Zend\Config\Config;
 
 /**
  * @group      Zend_Crypt
  */
 class McryptTest extends \PHPUnit_Framework_TestCase
 {
-    /** @var Mcrypt */
+    /**
+     * @var Mcrypt
+     */
     protected $mcrypt;
+    /**
+     * @var string
+     */
     protected $key;
+    /**
+     * @var string
+     */
     protected $salt;
+    /**
+     * @var string
+     */
     protected $plaintext;
 
     public function setUp()
@@ -53,9 +66,13 @@ class McryptTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($mcrypt->getMode(), MCRYPT_MODE_CFB);
         $this->assertEquals($mcrypt->getKey(), substr($this->key, 0, $mcrypt->getKeySize()));
         $this->assertEquals($mcrypt->getSalt(), substr($this->salt, 0, $mcrypt->getSaltSize()));
-        $this->assertInstanceOf('Zend\Crypt\Symmetric\Padding\PKCS7', $mcrypt->getPadding());
+        $this->assertInstanceOf(PKCS7::class, $mcrypt->getPadding());
     }
 
+    /**
+     * This test uses ArrayObject to simulate a Zend\Config\Config instance;
+     * the class itself only tests for Traversable.
+     */
     public function testConstructByConfig()
     {
         $options = [
@@ -65,20 +82,22 @@ class McryptTest extends \PHPUnit_Framework_TestCase
             'salt'      => $this->salt,
             'padding'   => 'pkcs7'
         ];
-        $config  = new Config($options);
+        $config  = new ArrayObject($options);
         $mcrypt  = new Mcrypt($config);
         $this->assertEquals($mcrypt->getAlgorithm(), MCRYPT_BLOWFISH);
         $this->assertEquals($mcrypt->getMode(), MCRYPT_MODE_CFB);
         $this->assertEquals($mcrypt->getKey(), substr($this->key, 0, $mcrypt->getKeySize()));
         $this->assertEquals($mcrypt->getSalt(), substr($this->salt, 0, $mcrypt->getSaltSize()));
-        $this->assertInstanceOf('Zend\Crypt\Symmetric\Padding\PKCS7', $mcrypt->getPadding());
+        $this->assertInstanceOf(PKCS7::class, $mcrypt->getPadding());
     }
 
     public function testConstructWrongParam()
     {
         $options = 'test';
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The options parameter must be an array, a Zend\Config\Config object or a Traversable');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The options parameter must be an array, a Zend\Config\Config object or a Traversable'
+        );
         $mcrypt = new Mcrypt($options);
     }
 
@@ -90,22 +109,26 @@ class McryptTest extends \PHPUnit_Framework_TestCase
 
     public function testSetWrongAlgorithm()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The algorithm test is not supported by Zend\Crypt\Symmetric\Mcrypt');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The algorithm test is not supported by Zend\Crypt\Symmetric\Mcrypt'
+        );
         $this->mcrypt->setAlgorithm('test');
     }
 
     public function testSetKey()
     {
         $result = $this->mcrypt->setKey($this->key);
-        $this->assertInstanceOf('Zend\Crypt\Symmetric\Mcrypt', $result);
+        $this->assertInstanceOf(Mcrypt::class, $result);
         $this->assertEquals($result, $this->mcrypt);
     }
 
     public function testSetEmptyKey()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The key cannot be empty');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The key cannot be empty'
+        );
         $result = $this->mcrypt->setKey('');
     }
 
@@ -119,10 +142,12 @@ class McryptTest extends \PHPUnit_Framework_TestCase
                 $result = $ex;
             }
             if ($algo != 'blowfish') {
-                $this->assertInstanceOf('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                    $result);
+                $this->assertInstanceOf(
+                    Exception\InvalidArgumentException::class,
+                    $result
+                );
             } else {
-                $this->assertInstanceof('Zend\Crypt\Symmetric\Mcrypt', $result);
+                $this->assertInstanceof(Mcrypt::class, $result);
             }
         }
     }
@@ -130,8 +155,10 @@ class McryptTest extends \PHPUnit_Framework_TestCase
     public function testSetSalt()
     {
         $this->mcrypt->setSalt($this->salt);
-        $this->assertEquals(substr($this->salt, 0, $this->mcrypt->getSaltSize()),
-                            $this->mcrypt->getSalt());
+        $this->assertEquals(
+            substr($this->salt, 0, $this->mcrypt->getSaltSize()),
+            $this->mcrypt->getSalt()
+        );
         $this->assertEquals($this->salt, $this->mcrypt->getOriginalSalt());
     }
 
@@ -151,8 +178,10 @@ class McryptTest extends \PHPUnit_Framework_TestCase
 
     public function testSetWrongMode()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The mode xxx is not supported by Zend\Crypt\Symmetric\Mcrypt');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The mode xxx is not supported by Zend\Crypt\Symmetric\Mcrypt'
+        );
         $this->mcrypt->setMode('xxx');
     }
 
@@ -182,29 +211,61 @@ class McryptTest extends \PHPUnit_Framework_TestCase
 
     public function testEncryptEmptyData()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The data to encrypt cannot be empty');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The data to encrypt cannot be empty'
+        );
         $ciphertext = $this->mcrypt->encrypt('');
     }
 
     public function testEncryptWihoutSalt()
     {
         $this->mcrypt->setKey($this->key);
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The salt (IV) cannot be empty');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The salt (IV) cannot be empty'
+        );
         $ciphertext = $this->mcrypt->encrypt($this->plaintext);
     }
 
     public function testDecryptEmptyData()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException',
-                                    'The data to decrypt cannot be empty');
+        $this->setExpectedException(
+            Exception\InvalidArgumentException::class,
+            'The data to decrypt cannot be empty'
+        );
         $ciphertext = $this->mcrypt->decrypt('');
     }
 
     public function testDecryptWithoutKey()
     {
-        $this->setExpectedException('Zend\Crypt\Symmetric\Exception\InvalidArgumentException');
+        $this->setExpectedException(Exception\InvalidArgumentException::class);
         $this->mcrypt->decrypt($this->plaintext);
+    }
+
+    public function testSetOptions()
+    {
+        $options = [
+            'algo'    => 'blowfish',
+            'mode'    =>  MCRYPT_MODE_CFB,
+            'key'     => 'test',
+            'iv'      => '12345678',
+            'padding' => 'nopadding'
+        ];
+        $this->mcrypt->setOptions($options);
+
+        $this->assertEquals($options['algo'], $this->mcrypt->getAlgorithm());
+        $this->assertEquals($options['mode'], $this->mcrypt->getMode());
+        $this->assertEquals($options['key'], $this->mcrypt->getKey());
+        $this->assertEquals($options['iv'], $this->mcrypt->getSalt());
+        $this->assertInstanceOf(NoPadding::class, $this->mcrypt->getPadding());
+    }
+
+    public function testSetPaddingPluginManager()
+    {
+        $this->mcrypt->setPaddingPluginManager(
+            $this->getMockBuilder(ContainerInterface::class)->getMock()
+        );
+        $this->assertInstanceOf(ContainerInterface::class, $this->mcrypt->getPaddingPluginManager());
     }
 }

@@ -98,7 +98,11 @@ class TranslatePluralTest extends \PHPUnit_Framework_TestCase
         $this->helper->setTranslator($translatorMock);
 
         $this->assertEquals($expected, $this->helper->__invoke(
-            $singularInput, $pluralInput, $numberInput, $textDomain, $locale
+            $singularInput,
+            $pluralInput,
+            $numberInput,
+            $textDomain,
+            $locale
         ));
     }
 }

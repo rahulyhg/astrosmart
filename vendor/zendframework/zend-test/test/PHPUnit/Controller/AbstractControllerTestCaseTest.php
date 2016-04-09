@@ -78,7 +78,7 @@ class AbstractControllerTestCaseTest extends AbstractHttpControllerTestCase
     public function testUseOfRouter()
     {
         // default value
-       $this->assertEquals(false, $this->useConsoleRequest);
+        $this->assertEquals(false, $this->useConsoleRequest);
     }
 
     public function testApplicationClass()
@@ -248,6 +248,68 @@ class AbstractControllerTestCaseTest extends AbstractHttpControllerTestCase
         $this->assertNotMatchedRouteName('myroute');
     }
 
+    public function testAssertNoMatchedRoute()
+    {
+        $this->dispatch('/invalid');
+        $this->assertNoMatchedRoute();
+    }
+
+    public function testAssertNoMatchedRouteWithMatchedRoute()
+    {
+        $this->dispatch('/tests');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'no route matched');
+        $this->assertNoMatchedRoute();
+    }
+
+    public function testControllerNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertControllerName('something');
+    }
+
+    public function testNotControllerNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertNotControllerName('something');
+    }
+
+    public function testActionNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertActionName('something');
+    }
+
+    public function testNotActionNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertNotActionName('something');
+    }
+
+    public function testMatchedRouteNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertMatchedRouteName('something');
+    }
+
+    public function testNotMatchedRouteNameWithNoRouteMatch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertNotMatchedRouteName('something');
+    }
+
+    public function testControllerClassWithNoRoutematch()
+    {
+        $this->dispatch('/invalid');
+        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException', 'No route matched');
+        $this->assertControllerClass('something');
+    }
+
     /**
      * Sample tests on Application errors events
      */
@@ -355,5 +417,16 @@ class AbstractControllerTestCaseTest extends AbstractHttpControllerTestCase
     {
         $this->dispatch('/custom-response');
         $this->assertResponseStatusCode(999);
+    }
+
+    public function testResetDoesNotCreateSessionIfNoSessionExists()
+    {
+        if (! extension_loaded('session')) {
+            $this->markTestSkipped('No session extension loaded');
+        }
+
+        $this->reset();
+
+        $this->assertFalse(array_key_exists('_SESSION', $GLOBALS));
     }
 }

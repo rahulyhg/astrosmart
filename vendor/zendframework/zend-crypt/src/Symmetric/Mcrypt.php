@@ -9,6 +9,7 @@
 
 namespace Zend\Crypt\Symmetric;
 
+use Interop\Container\ContainerInterface;
 use Traversable;
 use Zend\Stdlib\ArrayUtils;
 
@@ -61,7 +62,7 @@ class Mcrypt implements SymmetricInterface
     /**
      * Padding plugins
      *
-     * @var PaddingPluginManager
+     * @var Interop\Container\ContainerInterface
      */
     protected static $paddingPlugins = null;
 
@@ -114,6 +115,18 @@ class Mcrypt implements SymmetricInterface
                 'You cannot use ' . __CLASS__ . ' without the Mcrypt extension'
             );
         }
+        $this->setOptions($options);
+        $this->setDefaultOptions($options);
+    }
+
+    /**
+     * Set default options
+     *
+     * @param  array $options
+     * @return void
+     */
+    public function setOptions($options)
+    {
         if (!empty($options)) {
             if ($options instanceof Traversable) {
                 $options = ArrayUtils::iteratorToArray($options);
@@ -146,7 +159,6 @@ class Mcrypt implements SymmetricInterface
                 }
             }
         }
-        $this->setDefaultOptions($options);
     }
 
     /**
@@ -167,7 +179,7 @@ class Mcrypt implements SymmetricInterface
     /**
      * Returns the padding plugin manager.  If it doesn't exist it's created.
      *
-     * @return PaddingPluginManager
+     * @return ContainerInterface
      */
     public static function getPaddingPluginManager()
     {
@@ -181,25 +193,24 @@ class Mcrypt implements SymmetricInterface
     /**
      * Set the padding plugin manager
      *
-     * @param  string|PaddingPluginManager        $plugins
+     * @param  string|ContainerInterface $plugins
      * @throws Exception\InvalidArgumentException
      * @return void
      */
     public static function setPaddingPluginManager($plugins)
     {
         if (is_string($plugins)) {
-            if (!class_exists($plugins)) {
+            if (! class_exists($plugins) || ! is_subclass_of($plugins, ContainerInterface::class)) {
                 throw new Exception\InvalidArgumentException(sprintf(
-                    'Unable to locate padding plugin manager via class "%s"; class does not exist',
+                    'Unable to locate padding plugin manager via class "%s"; class does not exist or does not implement ContainerInterface',
                     $plugins
                 ));
             }
             $plugins = new $plugins();
         }
-        if (!$plugins instanceof PaddingPluginManager) {
+        if (!$plugins instanceof ContainerInterface) {
             throw new Exception\InvalidArgumentException(sprintf(
-                'Padding plugins must extend %s\PaddingPluginManager; received "%s"',
-                __NAMESPACE__,
+                'Padding plugins must implements Interop\Container\ContainerInterface; received "%s"',
                 (is_object($plugins) ? get_class($plugins) : gettype($plugins))
             ));
         }
@@ -226,7 +237,7 @@ class Mcrypt implements SymmetricInterface
      */
     public function setKey($key)
     {
-        $keyLen = strlen($key);
+        $keyLen = mb_strlen($key, '8bit');
 
         if (!$keyLen) {
             throw new Exception\InvalidArgumentException('The key cannot be empty');
@@ -260,7 +271,7 @@ class Mcrypt implements SymmetricInterface
         if (empty($this->key)) {
             return;
         }
-        return substr($this->key, 0, $this->getKeySize());
+        return mb_substr($this->key, 0, $this->getKeySize(), '8bit');
     }
 
     /**
@@ -370,8 +381,8 @@ class Mcrypt implements SymmetricInterface
         if (null === $this->getPadding()) {
             throw new Exception\InvalidArgumentException('You have to specify a padding method');
         }
-        $iv         = substr($data, 0, $this->getSaltSize());
-        $ciphertext = substr($data, $this->getSaltSize());
+        $iv         = mb_substr($data, 0, $this->getSaltSize(), '8bit');
+        $ciphertext = mb_substr($data, $this->getSaltSize(), null, '8bit');
         $result     = mcrypt_decrypt(
             $this->supportedAlgos[$this->algo],
             $this->getKey(),
@@ -415,7 +426,7 @@ class Mcrypt implements SymmetricInterface
         if (empty($salt)) {
             throw new Exception\InvalidArgumentException('The salt (IV) cannot be empty');
         }
-        if (strlen($salt) < $this->getSaltSize()) {
+        if (mb_strlen($salt, '8bit') < $this->getSaltSize()) {
             throw new Exception\InvalidArgumentException(
                 'The size of the salt (IV) must be at least ' . $this->getSaltSize() . ' bytes'
             );
@@ -435,13 +446,13 @@ class Mcrypt implements SymmetricInterface
         if (empty($this->iv)) {
             return;
         }
-        if (strlen($this->iv) < $this->getSaltSize()) {
+        if (mb_strlen($this->iv, '8bit') < $this->getSaltSize()) {
             throw new Exception\RuntimeException(
                 'The size of the salt (IV) must be at least ' . $this->getSaltSize() . ' bytes'
             );
         }
 
-        return substr($this->iv, 0, $this->getSaltSize());
+        return mb_substr($this->iv, 0, $this->getSaltSize(), '8bit');
     }
 
     /**

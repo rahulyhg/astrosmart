@@ -14,6 +14,7 @@ use Locale;
 use Zend\EventManager\EventInterface;
 use Zend\I18n\Translator\Translator;
 use Zend\I18n\Translator\TextDomain;
+use Zend\ServiceManager\Config;
 use ZendTest\I18n\Translator\TestAsset\Loader as TestLoader;
 
 class TranslatorTest extends TestCase
@@ -56,22 +57,22 @@ class TranslatorTest extends TestCase
 
     public function testFactoryCreatesTranslator()
     {
-        $translator = Translator::factory(array(
+        $translator = Translator::factory([
             'locale' => 'de_DE',
-            'patterns' => array(
-                array(
+            'patterns' => [
+                [
                     'type' => 'phparray',
                     'base_dir' => $this->testFilesDir . '/testarray',
                     'pattern' => 'translation-%s.php'
-                )
-            ),
-            'files' => array(
-                array(
+                ]
+            ],
+            'files' => [
+                [
                     'type' => 'phparray',
                     'filename' => $this->testFilesDir . '/translation_en.php',
-                )
-            )
-        ));
+                ]
+            ]
+        ]);
 
         $this->assertInstanceOf('Zend\I18n\Translator\Translator', $translator);
         $this->assertEquals('de_DE', $translator->getLocale());
@@ -79,21 +80,21 @@ class TranslatorTest extends TestCase
 
     public function testTranslationFromSeveralTranslationFiles()
     {
-        $translator = Translator::factory(array(
+        $translator = Translator::factory([
             'locale' => 'de_DE',
-            'translation_file_patterns' => array(
-                array(
+            'translation_file_patterns' => [
+                [
                     'type' => 'phparray',
                     'base_dir' => $this->testFilesDir . '/testarray',
                     'pattern' => 'translation-%s.php'
-                ),
-                array(
+                ],
+                [
                     'type' => 'phparray',
                     'base_dir' => $this->testFilesDir . '/testarray',
                     'pattern' => 'translation-more-%s.php'
-                )
-            )
-        ));
+                ]
+            ]
+        ]);
 
         //Test translator instance
         $this->assertInstanceOf('Zend\I18n\Translator\Translator', $translator);
@@ -109,22 +110,22 @@ class TranslatorTest extends TestCase
 
     public function testTranslationFromDifferentSourceTypes()
     {
-        $translator = Translator::factory(array(
+        $translator = Translator::factory([
             'locale' => 'de_DE',
-            'translation_file_patterns' => array(
-                array(
+            'translation_file_patterns' => [
+                [
                     'type'     => 'phparray',
                     'base_dir' => $this->testFilesDir . '/testarray',
                     'pattern'  => 'translation-de_DE.php'
-                ),
-            ),
-            'translation_files' => array(
-                array(
+                ],
+            ],
+            'translation_files' => [
+                [
                     'type'     => 'phparray',
                     'filename' => $this->testFilesDir . '/testarray/translation-more-de_DE.php'
-                )
-            )
-        ));
+                ]
+            ]
+        ]);
 
         $this->assertEquals('Nachricht 1', $translator->translate('Message 1')); //translation-de_DE.php
         $this->assertEquals('Nachricht 9', $translator->translate('Message 9')); //translation-more-de_DE.php
@@ -132,19 +133,19 @@ class TranslatorTest extends TestCase
 
     public function testFactoryCreatesTranslatorWithCache()
     {
-        $translator = Translator::factory(array(
+        $translator = Translator::factory([
             'locale' => 'de_DE',
-            'patterns' => array(
-                array(
+            'patterns' => [
+                [
                     'type' => 'phparray',
                     'base_dir' => $this->testFilesDir . '/testarray',
                     'pattern' => 'translation-%s.php'
-                )
-            ),
-            'cache' => array(
+                ]
+            ],
+            'cache' => [
                 'adapter' => 'memory'
-            )
-        ));
+            ]
+        ]);
 
         $this->assertInstanceOf('Zend\I18n\Translator\Translator', $translator);
         $this->assertInstanceOf('Zend\Cache\Storage\StorageInterface', $translator->getCache());
@@ -164,8 +165,15 @@ class TranslatorTest extends TestCase
     public function testTranslate()
     {
         $loader = new TestLoader();
-        $loader->textDomain = new TextDomain(array('foo' => 'bar'));
-        $this->translator->getPluginManager()->setService('test', $loader);
+        $loader->textDomain = new TextDomain(['foo' => 'bar']);
+        $config = new Config([
+            'services' => [
+                'test' => $loader
+            ]
+        ]);
+        $pm = $this->translator->getPluginManager();
+        $config->configureServiceManager($pm);
+        $this->translator->setPluginManager($pm);
         $this->translator->addTranslationFile('test', null);
 
         $this->assertEquals('bar', $this->translator->translate('foo'));
@@ -173,12 +181,12 @@ class TranslatorTest extends TestCase
 
     public function testTranslationsLoadedFromCache()
     {
-        $cache = \Zend\Cache\StorageFactory::factory(array('adapter' => 'memory'));
+        $cache = \Zend\Cache\StorageFactory::factory(['adapter' => 'memory']);
         $this->translator->setCache($cache);
 
         $cache->addItem(
             'Zend_I18n_Translator_Messages_' . md5('default' . 'en_EN'),
-            new TextDomain(array('foo' => 'bar'))
+            new TextDomain(['foo' => 'bar'])
         );
 
         $this->assertEquals('bar', $this->translator->translate('foo'));
@@ -186,12 +194,15 @@ class TranslatorTest extends TestCase
 
     public function testTranslationsAreStoredInCache()
     {
-        $cache = \Zend\Cache\StorageFactory::factory(array('adapter' => 'memory'));
+        $cache = \Zend\Cache\StorageFactory::factory(['adapter' => 'memory']);
         $this->translator->setCache($cache);
 
         $loader = new TestLoader();
-        $loader->textDomain = new TextDomain(array('foo' => 'bar'));
-        $this->translator->getPluginManager()->setService('test', $loader);
+        $loader->textDomain = new TextDomain(['foo' => 'bar']);
+        $config = new Config(['services' => ['test' => $loader]]);
+        $plugins = $this->translator->getPluginManager();
+        $config->configureServiceManager($plugins);
+        $this->translator->setPluginManager($plugins);
         $this->translator->addTranslationFile('test', null);
 
         $this->assertEquals('bar', $this->translator->translate('foo'));
@@ -274,12 +285,12 @@ class TranslatorTest extends TestCase
 
     public function testEnableEventMangerViaFactory()
     {
-        $translator = Translator::factory(array(
+        $translator = Translator::factory([
             'event_manager_enabled' => true
-        ));
+        ]);
         $this->assertTrue($translator->isEventManagerEnabled());
 
-        $translator = Translator::factory(array());
+        $translator = Translator::factory([]);
         $this->assertFalse($translator->isEventManagerEnabled());
     }
 
@@ -296,11 +307,11 @@ class TranslatorTest extends TestCase
 
         $this->assertInstanceOf('Zend\EventManager\Event', $actualEvent);
         $this->assertEquals(
-            array(
+            [
                 'message'     => 'foo',
                 'locale'      => 'baz',
                 'text_domain' => 'bar',
-            ),
+            ],
             $actualEvent->getParams()
         );
 
@@ -317,13 +328,14 @@ class TranslatorTest extends TestCase
         $doNotTriger = null;
 
         $this->translator->enableEventManager();
-        $this->translator->getEventManager()->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) use (&$trigger) {
+        $events = $this->translator->getEventManager();
+        $events->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) use (&$trigger) {
             $trigger = true;
         });
-        $this->translator->getEventManager()->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) {
+        $events->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) {
             return 'EVENT TRIGGERED';
         });
-        $this->translator->getEventManager()->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) use (&$doNotTrigger) {
+        $events->attach(Translator::EVENT_MISSING_TRANSLATION, function (EventInterface $event) use (&$doNotTrigger) {
             $doNotTrigger = true;
         });
 
@@ -338,18 +350,20 @@ class TranslatorTest extends TestCase
         $actualEvent = null;
 
         $this->translator->enableEventManager();
-        $this->translator->getEventManager()->attach(Translator::EVENT_NO_MESSAGES_LOADED, function (EventInterface $event) use (&$actualEvent) {
-            $actualEvent = $event;
-        });
+        $this->translator
+            ->getEventManager()
+            ->attach(Translator::EVENT_NO_MESSAGES_LOADED, function (EventInterface $event) use (&$actualEvent) {
+                $actualEvent = $event;
+            });
 
         $this->translator->translate('foo', 'bar', 'baz');
 
         $this->assertInstanceOf('Zend\EventManager\Event', $actualEvent);
         $this->assertEquals(
-            array(
+            [
                 'locale'      => 'baz',
                 'text_domain' => 'bar',
-            ),
+            ],
             $actualEvent->getParams()
         );
 
@@ -364,9 +378,9 @@ class TranslatorTest extends TestCase
     {
         $trigger      = null;
         $doNotTrigger = null;
-        $textDomain   = new TextDomain(array(
+        $textDomain   = new TextDomain([
             'foo' => 'BOOYAH',
-        ));
+        ]);
 
         $this->translator->enableEventManager();
         $events = $this->translator->getEventManager();
@@ -429,5 +443,23 @@ class TranslatorTest extends TestCase
 
         $allMessages = $this->translator->getAllMessages('default', 'es_ES');
         $this->assertNull($allMessages);
+    }
+
+    /**
+     * @group 33
+     */
+    public function testNullMessageArgumentShouldReturnAnEmptyString()
+    {
+        $loader = new TestLoader();
+        $loader->textDomain = new TextDomain(['foo' => 'bar']);
+        $config = new Config(['services' => [
+            'test' => $loader
+        ]]);
+        $pm = $this->translator->getPluginManager();
+        $config->configureServiceManager($pm);
+        $this->translator->setPluginManager($pm);
+        $this->translator->addTranslationFile('test', null);
+
+        $this->assertEquals('', $this->translator->translate(null));
     }
 }

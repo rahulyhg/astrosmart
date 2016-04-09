@@ -9,6 +9,7 @@
 
 namespace ZendTest\Tag\Cloud\Decorator;
 
+use ArrayObject;
 use Zend\Tag\Cloud\Decorator;
 
 /**
@@ -24,10 +25,10 @@ class HtmlCloudTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(
             '<ul class="zend-tag-cloud">foo bar</ul>',
             $decorator->render(
-                array(
+                [
                      'foo',
                      'bar'
-                )
+                ]
             )
         );
     }
@@ -36,19 +37,19 @@ class HtmlCloudTest extends \PHPUnit_Framework_TestCase
     {
         $decorator = new Decorator\HtmlCloud();
         $decorator->setHtmlTags(
-            array(
+            [
                  'span',
-                 'div' => array('id' => 'tag-cloud')
-            )
+                 'div' => ['id' => 'tag-cloud']
+            ]
         );
 
         $this->assertEquals(
             '<div id="tag-cloud"><span>foo bar</span></div>',
             $decorator->render(
-                array(
+                [
                      'foo',
                      'bar'
-                )
+                ]
             )
         );
     }
@@ -61,91 +62,87 @@ class HtmlCloudTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(
             '<ul class="zend-tag-cloud">foo-bar</ul>',
             $decorator->render(
-                array(
+                [
                      'foo',
                      'bar'
-                )
+                ]
             )
         );
     }
 
     public function testConstructorWithArray()
     {
-        $decorator = new Decorator\HtmlCloud(array(
-                                                  'htmlTags'  => array('div'),
-                                                  'separator' => ' '
-                                             ));
+        $decorator = new Decorator\HtmlCloud([
+            'htmlTags'  => ['div'],
+            'separator' => ' ',
+        ]);
 
         $this->assertEquals(
-            '<div>foo bar</div>', $decorator->render(
-                array(
-                     'foo',
-                     'bar'
-                )
-            )
+            '<div>foo bar</div>',
+            $decorator->render([
+                'foo',
+                'bar'
+            ])
         );
     }
 
+    /**
+     * This test uses ArrayObject, which will have essentially the
+     * same behavior as Zend\Config\Config; the code is looking only
+     * for a Traversable.
+     */
     public function testConstructorWithConfig()
     {
-        $decorator = new Decorator\HtmlCloud(
-            new \Zend\Config\Config(
-                array(
-                     'htmlTags'  => array('div'),
-                     'separator' => ' '
-                )
-            )
-        );
+        $decorator = new Decorator\HtmlCloud(new ArrayObject([
+            'htmlTags'  => ['div'],
+            'separator' => ' '
+        ]));
 
         $this->assertEquals(
-            '<div>foo bar</div>', $decorator->render(
-                array(
-                     'foo',
-                     'bar'
-                )
-            )
+            '<div>foo bar</div>',
+            $decorator->render([
+                'foo',
+                'bar'
+            ])
         );
     }
 
     public function testSetOptions()
     {
         $decorator = new Decorator\HtmlCloud();
-        $decorator->setOptions(
-            array(
-                 'htmlTags'  => array('div'),
-                 'separator' => ' '
-            )
-        );
+        $decorator->setOptions([
+            'htmlTags'  => ['div'],
+            'separator' => ' '
+        ]);
 
         $this->assertEquals(
-            '<div>foo bar</div>', $decorator->render(
-                array(
-                     'foo',
-                     'bar'
-                )
-            )
+            '<div>foo bar</div>',
+            $decorator->render([
+                'foo',
+                'bar'
+            ])
         );
     }
 
     public function testSkipOptions()
     {
-        $decorator = new Decorator\HtmlCloud(array('options' => 'foobar'));
+        $decorator = new Decorator\HtmlCloud(['options' => 'foobar']);
         // In case would fail due to an error
     }
 
     public function invalidHtmlTagProvider()
     {
-        return array(
-            array(array('_foo')),
-            array(array('&foo')),
-            array(array(' foo')),
-            array(array(' foo')),
-            array(
-                array(
-                    '_foo' => array(),
-                )
-            ),
-        );
+        return [
+            [['_foo']],
+            [['&foo']],
+            [[' foo']],
+            [[' foo']],
+            [
+                [
+                    '_foo' => [],
+                ]
+            ],
+        ];
     }
 
     /**
@@ -158,34 +155,34 @@ class HtmlCloudTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException(
             'Zend\Tag\Exception\InvalidElementNameException'
         );
-        $decorator->render(array());
+        $decorator->render([]);
     }
 
     public function invalidAttributeProvider()
     {
-        return array(
-            array(
-                array(
-                    'foo' => array(
+        return [
+            [
+                [
+                    'foo' => [
                         '&bar' => 'baz',
-                    ),
-                )
-            ),
-            array(
-                array(
-                    'foo' => array(
+                    ],
+                ]
+            ],
+            [
+                [
+                    'foo' => [
                         ':bar&baz' => 'bat',
-                    ),
-                )
-            ),
-            array(
-                array(
-                    'foo' => array(
+                    ],
+                ]
+            ],
+            [
+                [
+                    'foo' => [
                         'bar/baz' => 'bat',
-                    ),
-                )
-            ),
-        );
+                    ],
+                ]
+            ],
+        ];
     }
 
     /**
@@ -198,6 +195,6 @@ class HtmlCloudTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException(
             'Zend\Tag\Exception\InvalidAttributeNameException'
         );
-        $decorator->render(array());
+        $decorator->render([]);
     }
 }

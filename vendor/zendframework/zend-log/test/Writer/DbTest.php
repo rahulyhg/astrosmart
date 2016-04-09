@@ -329,7 +329,8 @@ class DbTest extends \PHPUnit_Framework_TestCase
                 'file'  => 'new-file',
                 'line'  => 'new-line',
                 'trace' => 'new-trace',
-        ]];
+            ]
+        ];
 
         $method = new ReflectionMethod($this->writer, 'mapEventIntoColumn');
         $method->setAccessible(true);

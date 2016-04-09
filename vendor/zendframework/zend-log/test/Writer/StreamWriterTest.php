@@ -9,14 +9,21 @@
 
 namespace ZendTest\Log\Writer;
 
-use Zend\Log\Writer\Stream as StreamWriter;
+use org\bovigo\vfs\vfsStream;
+use Zend\Log\Filter\Mock as MockFilter;
 use Zend\Log\Formatter\Simple as SimpleFormatter;
+use Zend\Log\Writer\Stream as StreamWriter;
 
 /**
  * @group      Zend_Log
  */
 class StreamWriterTest extends \PHPUnit_Framework_TestCase
 {
+    public function setUp()
+    {
+        $this->root = vfsStream::setup('zend-log');
+    }
+
     public function testConstructorThrowsWhenResourceIsNotStream()
     {
         $resource = xml_parser_create();
@@ -145,16 +152,17 @@ class StreamWriterTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructWithOptions()
     {
-        $formatter = new \Zend\Log\Formatter\Simple();
-        $filter    = new \Zend\Log\Filter\Mock();
-        $writer = new StreamWriter([
-                'filters'   => $filter,
-                'formatter' => $formatter,
-                'stream'        => 'php://memory',
-                'mode'          => 'w+',
-                'log_separator' => '::',
+        $formatter = new SimpleFormatter();
+        $filter    = new MockFilter();
 
+        $writer = new StreamWriter([
+            'filters'       => $filter,
+            'formatter'     => $formatter,
+            'stream'        => 'php://memory',
+            'mode'          => 'w+',
+            'log_separator' => '::',
         ]);
+
         $this->assertEquals('::', $writer->getLogSeparator());
         $this->assertAttributeEquals($formatter, 'formatter', $writer);
 
@@ -166,6 +174,49 @@ class StreamWriterTest extends \PHPUnit_Framework_TestCase
     public function testDefaultFormatter()
     {
         $writer = new StreamWriter('php://memory');
-        $this->assertAttributeInstanceOf('Zend\Log\Formatter\Simple', 'formatter', $writer);
+        $this->assertAttributeInstanceOf(SimpleFormatter::class, 'formatter', $writer);
+    }
+
+    public function testCanSpecifyFilePermsViaChmodOption()
+    {
+        $filter    = new MockFilter();
+        $formatter = new SimpleFormatter();
+        $file      = $this->root->url() . '/foo';
+        $writer = new StreamWriter([
+                'filters'       => $filter,
+                'formatter'     => $formatter,
+                'stream'        => $file,
+                'mode'          => 'w+',
+                'chmod'         => 0664,
+                'log_separator' => '::',
+        ]);
+
+        $this->assertEquals(0664, $this->root->getChild('foo')->getPermissions());
+    }
+
+    public function testFilePermsDoNotThrowErrors()
+    {
+        // Make the chmod() override emit a warning.
+        $GLOBALS['chmod_throw_error'] = true;
+
+        $filter    = new MockFilter();
+        $formatter = new SimpleFormatter();
+        $file      = $this->root->url() . '/foo';
+        $writer = new StreamWriter([
+            'filters'       => $filter,
+            'formatter'     => $formatter,
+            'stream'        => $file,
+            'mode'          => 'w+',
+            'chmod'         => 0777,
+        ]);
+
+        $this->assertEquals(0666, $this->root->getChild('foo')->getPermissions());
+    }
+
+    public function testCanSpecifyFilePermsViaConstructorArgument()
+    {
+        $file = $this->root->url() . '/foo';
+        new StreamWriter($file, null, null, 0755);
+        $this->assertEquals(0755, $this->root->getChild('foo')->getPermissions());
     }
 }

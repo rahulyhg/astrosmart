@@ -15,6 +15,7 @@ use Zend\Session\SaveHandler\MongoDBOptions;
 
 /**
  * @group      Zend_Session
+ * @covers Zend\Session\SaveHandler\MongoDb
  */
 class MongoDBTest extends \PHPUnit_Framework_TestCase
 {
@@ -67,6 +68,18 @@ class MongoDBTest extends \PHPUnit_Framework_TestCase
         if ($this->mongoCollection) {
             $this->mongoCollection->drop();
         }
+    }
+
+    public function testConstructorThrowsException()
+    {
+        $notMongo = new \stdClass();
+
+        $this->setExpectedException(
+            'InvalidArgumentException',
+            'Parameter of type stdClass is invalid; must be MongoClient or Mongo'
+        );
+
+        $saveHandler = new MongoDB($notMongo, $this->options);
     }
 
     public function testReadWrite()

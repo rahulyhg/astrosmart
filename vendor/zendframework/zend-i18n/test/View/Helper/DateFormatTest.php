@@ -35,6 +35,13 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
+        if (! interface_exists('Zend\View\Helper\HelperInterface')) {
+            $this->markTestSkipped(
+                'Skipping tests that utilize zend-view until that component is '
+                . 'forwards-compatible with zend-stdlib and zend-servicemanager v3'
+            );
+        }
+
         if (!extension_loaded('intl')) {
             $this->markTestSkipped('ext/intl not enabled');
         }
@@ -59,98 +66,98 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
             if (version_compare(\PHPUnit_Runner_Version::id(), '3.8.0-dev') === 1) {
                 $this->markTestSkipped('ext/intl not enabled');
             } else {
-                return array(array());
+                return [[]];
             }
         }
 
         $date = new DateTime('2012-07-02T22:44:03Z');
 
-        return array(
-            array(
+        return [
+            [
                 'de_DE',
                 'Europe/Berlin',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::FULL,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 IntlDateFormatter::LONG,
                 IntlDateFormatter::LONG,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 IntlDateFormatter::MEDIUM,
                 IntlDateFormatter::MEDIUM,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 IntlDateFormatter::SHORT,
                 IntlDateFormatter::SHORT,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'ru_RU',
                 'Europe/Moscow',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::FULL,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'ru_RU',
                 'Europe/Moscow',
                 IntlDateFormatter::LONG,
                 IntlDateFormatter::LONG,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'ru_RU',
                 'Europe/Moscow',
                 IntlDateFormatter::MEDIUM,
                 IntlDateFormatter::MEDIUM,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'ru_RU',
                 'Europe/Moscow',
                 IntlDateFormatter::SHORT,
                 IntlDateFormatter::SHORT,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'en_US',
                 'America/New_York',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::FULL,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'en_US',
                 'America/New_York',
                 IntlDateFormatter::LONG,
                 IntlDateFormatter::LONG,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'en_US',
                 'America/New_York',
                 IntlDateFormatter::MEDIUM,
                 IntlDateFormatter::MEDIUM,
                 $date,
-            ),
-            array(
+            ],
+            [
                 'en_US',
                 'America/New_York',
                 IntlDateFormatter::SHORT,
                 IntlDateFormatter::SHORT,
                 $date,
-            ),
-        );
+            ],
+        ];
     }
 
     public function dateTestsDataProviderWithPattern()
@@ -159,46 +166,46 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
             if (version_compare(\PHPUnit_Runner_Version::id(), '3.8.0-dev') === 1) {
                 $this->markTestSkipped('ext/intl not enabled');
             } else {
-                return array(array());
+                return [[]];
             }
         }
 
         $date = new DateTime('2012-07-02T22:44:03Z');
 
-        return array(
-            array(
+        return [
+            [
                 'de_DE',
                 'Europe/Berlin',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::FULL,
                 'dd-MM',
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 null,
                 null,
                 'MMMM',
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 null,
                 null,
                 'MMMM.Y',
                 $date,
-            ),
-            array(
+            ],
+            [
                 'de_DE',
                 'Europe/Berlin',
                 null,
                 null,
                 'dd/Y',
                 $date,
-            ),
-        );
+            ],
+        ];
     }
 
     /**
@@ -213,7 +220,11 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
                          ->format($date->getTimestamp());
 
         $this->assertMbStringEquals($expected, $this->helper->__invoke(
-            $date, $dateType, $timeType, $locale, null
+            $date,
+            $dateType,
+            $timeType,
+            $locale,
+            null
         ));
     }
 
@@ -230,7 +241,9 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
                          ->format($date->getTimestamp());
 
         $this->assertMbStringEquals($expected, $this->helper->__invoke(
-            $date, $dateType, $timeType
+            $date,
+            $dateType,
+            $timeType
         ));
     }
 
@@ -246,7 +259,11 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
                          ->format($date->getTimestamp());
 
         $this->assertMbStringEquals($expected, $this->helper->__invoke(
-            $date, $dateType, $timeType, $locale, $pattern
+            $date,
+            $dateType,
+            $timeType,
+            $locale,
+            $pattern
         ));
     }
 
@@ -267,12 +284,12 @@ class DateFormatTest extends \PHPUnit_Framework_TestCase
 
     public function assertMbStringEquals($expected, $test, $message = '')
     {
-        $expected = str_replace(array("\xC2\xA0", ' '), '', $expected);
-        $test     = str_replace(array("\xC2\xA0", ' '), '', $test);
+        $expected = str_replace(["\xC2\xA0", ' '], '', $expected);
+        $test     = str_replace(["\xC2\xA0", ' '], '', $test);
         $this->assertEquals($expected, $test, $message);
     }
 
-    public function getIntlDateFormatter($locale, $dateType, $timeType, $timezone, $pattern=null)
+    public function getIntlDateFormatter($locale, $dateType, $timeType, $timezone, $pattern = null)
     {
         return new IntlDateFormatter($locale, $dateType, $timeType, $timezone, null, $pattern);
     }
